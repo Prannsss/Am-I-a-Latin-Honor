@@ -217,9 +217,11 @@
       setupEvents();
       renderActiveYear();
       calculateGWA();
-      // Restore previous session; only auto-load sample PDF if nothing is stored
+      // If the user explicitly reset on the previous page load, stay empty.
+      const wasReset = sessionStorage.getItem(SESSION_KEY + '_reset') === '1';
+      if (wasReset) sessionStorage.removeItem(SESSION_KEY + '_reset');
       const restored = loadFromSession();
-      if (!restored) autoLoadEvaluationPdf();
+      if (!restored && !wasReset) autoLoadEvaluationPdf();
     });
 
     function showParseLoadingState(message) {
@@ -346,6 +348,8 @@
           populateParsedData(data);
           hideParseStatusBanner();
           updateBannerDataState("fresh");
+          // Show missing grades modal only for user-uploaded PDFs
+          showMissingGradesModal();
         } else {
           const errorMsg = (data && data.error) || parseErr || "Could not parse evaluation PDF. Please check if file is a valid USPF Evaluation PDF.";
           showParseErrorState(errorMsg);
@@ -576,12 +580,63 @@
 
     function clearStudentBanner() {
       sessionStorage.removeItem(SESSION_KEY);
+      // Mark that the user explicitly reset so the next refresh skips auto-load
+      sessionStorage.setItem(SESSION_KEY + '_reset', '1');
       document.getElementById("studentBanner").style.display = "none";
       for (let y = 1; y <= 4; y++) {
         state[y] = { 1: [], 2: [] };
       }
       renderActiveYear();
       calculateGWA();
+    }
+
+    function showMissingGradesModal() {
+      const missing = [];
+      for (let y = 1; y <= 4; y++) {
+        for (let s = 1; s <= 2; s++) {
+          state[y][s].forEach(subj => {
+            const g = subj.grade;
+            if (g === null || g === undefined || g === '' || isNaN(g) || g <= 0) {
+              missing.push({ year: y, sem: s, name: subj.name || subj.code });
+            }
+          });
+        }
+      }
+      if (missing.length === 0) return;
+
+      // Group by Year + Semester
+      const grouped = {};
+      missing.forEach(({ year, sem, name }) => {
+        const key = `Year ${year} — ${sem === 1 ? '1st' : '2nd'} Semester`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(name);
+      });
+
+      let listHTML = '';
+      Object.entries(grouped).forEach(([label, subjects]) => {
+        listHTML += `
+          <div style="margin-bottom: 0.85rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+                        color: var(--text-muted); margin-bottom: 0.35rem;">${escapeHtml(label)}</div>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.3rem;">
+              ${subjects.map(n => `
+                <li style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5"
+                       stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  <span>${escapeHtml(n)}</span>
+                </li>`).join('')}
+            </ul>
+          </div>`;
+      });
+
+      document.getElementById('missingGradesCount').innerText =
+        `${missing.length} subject${missing.length !== 1 ? 's' : ''} with no grade`;
+      document.getElementById('missingGradesList').innerHTML = listHTML;
+      document.getElementById('missingGradesModal').classList.add('open');
     }
 
     function setupEvents() {
@@ -598,6 +653,14 @@
           renderActiveYear();
         });
       });
+
+      // Missing Grades Modal Events
+      const missingModal = document.getElementById('missingGradesModal');
+      if (missingModal) {
+        document.getElementById('closeMissingGradesModalBtn').addEventListener('click', () => missingModal.classList.remove('open'));
+        document.getElementById('confirmMissingGradesModalBtn').addEventListener('click', () => missingModal.classList.remove('open'));
+        missingModal.addEventListener('click', e => { if (e.target === missingModal) missingModal.classList.remove('open'); });
+      }
 
       // Info Modal Events
       const infoModal = document.getElementById("infoModal");
@@ -1159,5 +1222,35 @@
       </div>
     </div>
   </div>
+  <!-- Missing Grades Modal -->
+  <div class="modal-overlay" id="missingGradesModal" role="dialog" aria-modal="true" aria-labelledby="missingGradesModalTitle">
+    <div class="modal card" style="max-width: 500px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--warning);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <h3 id="missingGradesModalTitle" style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Incomplete Grade Record</h3>
+        </div>
+        <button class="btn-icon-only" id="closeMissingGradesModalBtn" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div style="font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.75rem 0.9rem; margin-bottom: 1rem; color: #92400e; font-size: 0.875rem;">
+          Your evaluation was imported but <strong id="missingGradesCount">some subjects</strong> are pending. Fill in the missing grades to get an accurate GWA and honor standing.
+        </div>
+        <div id="missingGradesList" style="max-height: 320px; overflow-y: auto; padding-right: 4px;">
+          <!-- Dynamically rendered -->
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+        <button class="btn btn-primary" id="confirmMissingGradesModalBtn">Got it</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
