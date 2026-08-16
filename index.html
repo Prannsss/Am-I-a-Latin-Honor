@@ -314,8 +314,7 @@
       // If the user explicitly reset on the previous page load, stay empty.
       const wasReset = sessionStorage.getItem(SESSION_KEY + '_reset') === '1';
       if (wasReset) sessionStorage.removeItem(SESSION_KEY + '_reset');
-      const restored = loadFromSession();
-      if (!restored && !wasReset) autoLoadEvaluationPdf();
+      loadFromSession();
     });
 
     function showParseLoadingState(message) {
