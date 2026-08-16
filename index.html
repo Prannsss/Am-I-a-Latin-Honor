@@ -6,7 +6,7 @@
   <title>Am I a Latin Honor? | USPF Latin Honor Evaluation & Grade Audit System</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <link rel="icon" type="image/svg+xml" href="public/uspf.svg">
+  <link rel="icon" type="image/svg+xml" href="public/icon.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -886,6 +886,32 @@
       tbody.innerHTML = "";
 
       const subjects = state[year][sem];
+      if (subjects.length === 0) {
+        const yearLabels = { 1: "1st Year", 2: "2nd Year", 3: "3rd Year", 4: "4th Year" };
+        const semLabels = { 1: "1st Sem", 2: "2nd Sem" };
+        const emptyTr = document.createElement("tr");
+        emptyTr.innerHTML = `
+          <td colspan="5" style="text-align: center; padding: 2rem 1rem; background: #ffffff;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; max-width: 360px; margin: 0 auto; color: var(--text-muted);">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--bg-main); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); margin-bottom: 0.1rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+              </div>
+              <strong style="font-size: 0.9rem; color: var(--text-main); font-weight: 600;">
+                No subjects in ${yearLabels[year]} (${semLabels[sem]})
+              </strong>
+              <span style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+                Upload your evaluation PDF to populate automatically, or click <strong>Add Subject</strong> above to enter manually.
+              </span>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(emptyTr);
+        return;
+      }
+
       subjects.forEach((subj, index) => {
         const isMissingGrade = subj.grade === null || subj.grade === undefined || subj.grade === '' || isNaN(subj.grade) || subj.grade === 0;
 

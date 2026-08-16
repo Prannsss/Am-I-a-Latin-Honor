@@ -1,4 +1,5 @@
 ﻿# Am I a Latin Honor?
+
 **USPF Latin Honor Evaluation & Grade Audit System**
 
 A self-evaluation web app for students of the **University of Southern Philippines Foundation (USPF)** to track their academic standing and determine their eligibility for Latin Honors based on the USPF Student Handbook.
@@ -24,11 +25,11 @@ A self-evaluation web app for students of the **University of Southern Philippin
 
 ## Latin Honor Thresholds (per USPF Student Handbook)
 
-| Honor | GWA Range | Max Grade per Academic Subject |
-|---|---|---|
-| Summa Cum Laude | 1.00 - 1.20 | 1.50 |
-| Magna Cum Laude | 1.21 - 1.45 | 1.75 |
-| Cum Laude | 1.46 - 1.75 | 2.00 |
+| Honor           | GWA Range   | Max Grade per Academic Subject |
+| --------------- | ----------- | ------------------------------ |
+| Summa Cum Laude | 1.00 - 1.20 | 1.50                           |
+| Magna Cum Laude | 1.21 - 1.45 | 1.75                           |
+| Cum Laude       | 1.46 - 1.75 | 2.00                           |
 
 > **PE and NSTP** subjects are excluded from GWA computation but must have no failing (5.00), DRP, or INC marks.
 
@@ -85,6 +86,7 @@ The app will be available at **http://localhost:8000**
 ### Check Your Standing
 
 The left **Current Standing** panel updates live showing:
+
 - Your Latin Honor status (or disqualification reason)
 - Cumulative 4-year GWA
 - Total evaluated academic units
@@ -109,6 +111,7 @@ ailh/
 |-- parse_evaluation.py # Server-side USPF PDF parser (pdfplumber)
 |-- server.py           # Lightweight Python HTTP server with /api/parse-pdf
 |-- public/
+|   |-- icon.svg        # Icon (used as favicon and header logo)
 |   |-- sample.png      # App screenshot
 |   |-- uspf.svg        # USPF logo (used as favicon and header logo)
 |-- README.md           # This file
