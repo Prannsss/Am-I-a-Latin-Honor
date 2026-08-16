@@ -29,6 +29,13 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="12"></line><line x1="15" y1="15" x2="12" y2="12"></line></svg>
         Export PDF Report
       </button>
+      <button class="btn btn-secondary" id="openGuideModalBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        Guide
+      </button>
+      <a href="https://github.com/Prannsss/Am-I-a-Latin-Honor" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 0.5rem;" title="GitHub Repository" aria-label="GitHub Repository">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
     </div>
   </header>
 
@@ -42,7 +49,7 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Synced from PDF
         </span>
       </div>
-      <button class="btn btn-secondary" onclick="clearStudentBanner()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Reset</button>
+      <button class="btn btn-secondary" onclick="triggerResetModal()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Reset</button>
     </div>
     <div class="student-info-grid">
       <div>
@@ -95,7 +102,7 @@
       <div aria-live="polite">
         <div class="stat-box">
           <span class="stat-label">Cumulative GWA (4-Year)
-            <span class="tooltip-icon" title="Excludes PE and NSTP as per USPF Student Handbook rules.">?</span>
+            <span class="tooltip-icon" data-tooltip="Excludes PE and NSTP as per USPF Student Handbook rules.">?</span>
           </span>
           <span class="stat-value" id="overallGWA">0.0000</span>
         </div>
@@ -109,7 +116,7 @@
         </div>
         <div class="stat-box">
           <span class="stat-label">Disqualifying Marks (> 2.00)
-            <span class="tooltip-icon" title="Any academic grade > 2.00 or failing PE/NSTP mark strictly disqualifies from Latin honors.">?</span>
+            <span class="tooltip-icon" data-tooltip="Any academic grade > 2.00 or failing PE/NSTP mark strictly disqualifies from Latin honors.">?</span>
           </span>
           <span class="stat-value" id="disqualifyingCount" style="color: var(--danger);">0</span>
         </div>
@@ -213,10 +220,97 @@
       }
     }
 
+    // Global Edge-Safe Custom Tooltip System
+    function initCustomTooltips() {
+      let tooltipEl = document.getElementById('custom-tooltip');
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'custom-tooltip';
+        document.body.appendChild(tooltipEl);
+      }
+
+      let activeTarget = null;
+
+      function hideTooltip() {
+        if (tooltipEl) tooltipEl.classList.remove('visible');
+        activeTarget = null;
+      }
+
+      document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('[data-tooltip], [title]');
+        if (!target) {
+          if (activeTarget) hideTooltip();
+          return;
+        }
+
+        // Convert title attribute to data-tooltip to prevent native browser tooltip overlap
+        if (target.hasAttribute('title')) {
+          const titleText = target.getAttribute('title');
+          if (titleText) target.setAttribute('data-tooltip', titleText);
+          target.removeAttribute('title');
+        }
+
+        const text = target.getAttribute('data-tooltip');
+        if (!text) return;
+
+        activeTarget = target;
+        tooltipEl.innerText = text;
+        tooltipEl.className = '';
+
+        const targetRect = target.getBoundingClientRect();
+        tooltipEl.style.display = 'block';
+        tooltipEl.style.left = '-9999px';
+        tooltipEl.style.top = '-9999px';
+
+        requestAnimationFrame(() => {
+          if (activeTarget !== target) return;
+          const tooltipRect = tooltipEl.getBoundingClientRect();
+          const padding = 10;
+          const viewportWidth = window.innerWidth;
+
+          let placeAbove = true;
+          let top = targetRect.top - tooltipRect.height - 8;
+
+          if (top < padding) {
+            placeAbove = false;
+            top = targetRect.bottom + 8;
+          }
+
+          let left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+
+          // Edge safety bounds for left & right screen edges
+          if (left < padding) left = padding;
+          if (left + tooltipRect.width > viewportWidth - padding) {
+            left = viewportWidth - tooltipRect.width - padding;
+          }
+
+          // Arrow horizontal positioning relative to target center
+          const targetCenterX = targetRect.left + (targetRect.width / 2);
+          let arrowLeft = targetCenterX - left;
+          arrowLeft = Math.max(12, Math.min(tooltipRect.width - 12, arrowLeft));
+
+          tooltipEl.style.left = `${left}px`;
+          tooltipEl.style.top = `${top}px`;
+          tooltipEl.style.setProperty('--arrow-left', `${arrowLeft}px`);
+          tooltipEl.classList.add(placeAbove ? 'arrow-bottom' : 'arrow-top');
+          tooltipEl.classList.add('visible');
+        });
+      });
+
+      document.addEventListener('mouseout', (e) => {
+        if (activeTarget && !e.target.closest('[data-tooltip]')) {
+          hideTooltip();
+        }
+      });
+
+      window.addEventListener('scroll', hideTooltip, { passive: true });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       setupEvents();
       renderActiveYear();
       calculateGWA();
+      initCustomTooltips();
       // If the user explicitly reset on the previous page load, stay empty.
       const wasReset = sessionStorage.getItem(SESSION_KEY + '_reset') === '1';
       if (wasReset) sessionStorage.removeItem(SESSION_KEY + '_reset');
@@ -578,6 +672,11 @@
       saveToSession();
     }
 
+    function triggerResetModal() {
+      const resetModal = document.getElementById('resetModal');
+      if (resetModal) resetModal.classList.add('open');
+    }
+
     function clearStudentBanner() {
       sessionStorage.removeItem(SESSION_KEY);
       // Mark that the user explicitly reset so the next refresh skips auto-load
@@ -654,6 +753,15 @@
         });
       });
 
+      // Guide Modal Events
+      const guideModal = document.getElementById('guideModal');
+      if (guideModal) {
+        document.getElementById('openGuideModalBtn').addEventListener('click', () => guideModal.classList.add('open'));
+        document.getElementById('closeGuideModalBtn').addEventListener('click', () => guideModal.classList.remove('open'));
+        document.getElementById('confirmGuideModalBtn').addEventListener('click', () => guideModal.classList.remove('open'));
+        guideModal.addEventListener('click', e => { if (e.target === guideModal) guideModal.classList.remove('open'); });
+      }
+
       // Missing Grades Modal Events
       const missingModal = document.getElementById('missingGradesModal');
       if (missingModal) {
@@ -692,6 +800,18 @@
         deleteModal.addEventListener("click", (e) => {
           if (e.target === deleteModal) deleteModal.classList.remove("open");
         });
+      }
+
+      // Reset Modal Events
+      const resetModal = document.getElementById('resetModal');
+      if (resetModal) {
+        document.getElementById('closeResetModalBtn').addEventListener('click', () => resetModal.classList.remove('open'));
+        document.getElementById('cancelResetModalBtn').addEventListener('click', () => resetModal.classList.remove('open'));
+        document.getElementById('confirmResetModalBtn').addEventListener('click', () => {
+          resetModal.classList.remove('open');
+          clearStudentBanner();
+        });
+        resetModal.addEventListener('click', e => { if (e.target === resetModal) resetModal.classList.remove('open'); });
       }
 
       // Export PDF Modal Events
@@ -788,7 +908,7 @@
                 placeholder="1.0" 
                 aria-label="Subject grade"
                 oninput="updateSubject(${year}, ${sem}, ${index}, 'grade', parseFloat(this.value) || null); updateGradeBadge(this)">
-              <span class="missing-badge" title="Grade missing / pending" ${isMissingGrade ? '' : 'style="display:none;"'}>
+              <span class="missing-badge" data-tooltip="Grade missing / pending" ${isMissingGrade ? '' : 'style="display:none;"'}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -872,6 +992,8 @@
           });
         }
       }
+
+      if (totalSubj === 0) return;
 
       const modalContent = document.getElementById('exportPdfModalContent');
       const exportBtnText = document.getElementById('exportPdfBtnText');
@@ -962,6 +1084,24 @@
       document.getElementById("totalUnits").innerText = totalAcademicUnits;
       document.getElementById("totalSubjects").innerText = totalEnteredSubjects;
       document.getElementById("disqualifyingCount").innerText = disqualifyingCount;
+
+      // Disable Export PDF button if there are no subjects in the evaluation
+      let totalAllSubjects = 0;
+      for (let y = 1; y <= 4; y++) {
+        for (let s = 1; s <= 2; s++) {
+          totalAllSubjects += state[y][s].length;
+        }
+      }
+      const exportBtn = document.getElementById("exportPdfBtn");
+      if (exportBtn) {
+        if (totalAllSubjects === 0) {
+          exportBtn.disabled = true;
+          exportBtn.setAttribute("data-tooltip", "No evaluation data to export. Upload a PDF or add subjects first.");
+        } else {
+          exportBtn.disabled = false;
+          exportBtn.removeAttribute("data-tooltip");
+        }
+      }
 
       updateStatusBadge(overallGWA, disqualifyingCount, totalEnteredSubjects);
     }
@@ -1145,7 +1285,7 @@
 
   <!-- System Information Modal -->
   <div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
-    <div class="modal card" style="max-width: 480px; width: 100%;">
+    <div class="modal card" style="max-width: 560px; width: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1160,18 +1300,47 @@
         </button>
       </div>
       <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">
-        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.85rem; color: #92400e;">
-          <strong>Notice:</strong> This system evaluates academic standing for all 4-year degree programs offered by USPF. Official evaluations remain subject to university policy updates and registrar verification.
-          <br><br>
+        
+        <!-- Disclaimer at top of Formula -->
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.85rem; color: #92400e; font-size: 0.85rem;">
           <strong>Disclaimer:</strong> This system is for self-evaluation purposes only and is based on the school's own Student Handbook or commonly referred to as the Student Manual.
         </div>
-        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
-          <div><strong>Last updated:</strong> August 16, 2026</div>
-          <div><strong>Developer:</strong> France Laurence Velarde</div>
+
+        <!-- Formula Section -->
+        <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">Honors GWA Formula</div>
+          <div style="font-size: 1.05rem; font-family: 'Times New Roman', Times, serif; font-style: italic; color: var(--text-main); display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+            <span>Honors GWA =</span>
+            <div style="display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;">
+              <span style="border-bottom: 1.5px solid var(--text-main); padding: 0 0.4rem 0.15rem 0.4rem;">&sum;(Grade<sub>i</sub> &times; Academic Units<sub>i</sub>)</span>
+              <span style="padding-top: 0.15rem;">&sum; Academic Units<sub>i</sub></span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
-        <button class="btn btn-primary" id="confirmInfoModalBtn">Close</button>
+
+        <!-- Formula Breakdown -->
+        <div style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <strong style="color: var(--text-main); font-size: 0.875rem;">Formula Breakdown:</strong>
+          <ul style="list-style: disc; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-main);">
+            <li><strong>Grade<sub>i</sub></strong>: The numerical final grade earned in an academic course (e.g., 1.25, 1.50).</li>
+            <li><strong>Academic Units<sub>i</sub></strong>: The unit weight assigned to that specific academic course (e.g., 3.0 units).</li>
+            <li><strong>Numerator (&sum;(Grade<sub>i</sub> &times; Academic Units<sub>i</sub>))</strong>: Total accumulated quality points across all academic courses.</li>
+            <li><strong>Denominator (&sum; Academic Units<sub>i</sub>)</strong>: Total number of academic credit units earned.</li>
+          </ul>
+        </div>
+
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 0.85rem; color: #065f46; font-size: 0.85rem;">
+          <strong>Privacy Notice:</strong> All uploaded data stays in your browser and is not stored in any cloud database.
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem; color: var(--text-muted); font-size: 0.85rem;">
+          <strong style="color: var(--text-main);">Notice:</strong> This system evaluates academic standing for all 4-year degree programs offered by USPF. Official evaluations remain subject to university policy updates and registrar verification.
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.4rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+          <div><strong>Last updated:</strong> August 16, 2026</div>
+          <div><strong>Developer:</strong> <a href="https://francedev.vercel.app/" target="_blank" rel="noopener" style="color: var(--primary); text-decoration: underline;">France Laurence Velarde</a></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1191,7 +1360,7 @@
       <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 1.25rem; line-height: 1.5;">
         Are you sure you want to delete <strong id="deleteSubjectNameTarget">this subject</strong>?
       </p>
-      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+      <div class="modal-footer">
         <button class="btn btn-secondary" id="cancelDeleteModalBtn">Cancel</button>
         <button class="btn btn-danger" id="executeDeleteModalBtn">Delete Subject</button>
       </div>
@@ -1213,7 +1382,7 @@
       <div id="exportPdfModalContent" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem; color: var(--text-main);">
         <!-- Dynamically rendered -->
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+      <div class="modal-footer">
         <button class="btn btn-secondary" id="cancelExportPdfModalBtn">Cancel</button>
         <button class="btn btn-success" id="confirmExportPdfModalBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="12"></line><line x1="15" y1="15" x2="12" y2="12"></line></svg>
@@ -1246,8 +1415,104 @@
           <!-- Dynamically rendered -->
         </div>
       </div>
-      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+      <div class="modal-footer">
         <button class="btn btn-primary" id="confirmMissingGradesModalBtn">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guide Modal -->
+  <div class="modal-overlay" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle">
+    <div class="modal card" style="max-width: 560px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <h3 id="guideModalTitle" style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">How to Use This System</h3>
+        </div>
+        <button class="btn-icon-only" id="closeGuideModalBtn" aria-label="Close guide">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <ol style="list-style: none; display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem; color: var(--text-main); line-height: 1.55;">
+
+        <li style="display: flex; gap: 0.85rem; align-items: flex-start;">
+          <span style="min-width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;">1</span>
+          <div>
+            <strong>Log in to the USPF Student Portal.</strong><br>
+            Go to <a href="https://uspf.pinnacle.com.ph/uspf/students/" target="_blank" rel="noopener" style="color: var(--primary); text-decoration: underline;">https://uspf.pinnacle.com.ph/uspf/students/</a> and enter your student credentials.
+          </div>
+        </li>
+
+        <li style="display: flex; gap: 0.85rem; align-items: flex-start;">
+          <span style="min-width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;">2</span>
+          <div>
+            <strong>Download your Evaluation Form.</strong><br>
+            Select the <strong>Grades</strong> tab. Click <strong>Print Course – Curriculum</strong>. Save the file to your device (computer or mobile device) as a PDF.
+          </div>
+        </li>
+
+        <li style="display: flex; gap: 0.85rem; align-items: flex-start;">
+          <span style="min-width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;">3</span>
+          <div>
+            <strong>Upload your Evaluation PDF.</strong><br>
+            Click <strong>Upload Evaluation PDF</strong> on this page. Select the PDF file you saved in Step 2.
+          </div>
+        </li>
+
+        <li style="display: flex; gap: 0.85rem; align-items: flex-start;">
+          <span style="min-width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;">4</span>
+          <div>
+            <strong>Wait for the system to process your data.</strong><br>
+            The system reads the file and fills in your subjects and grades automatically. Do not close the page during this step.
+          </div>
+        </li>
+
+        <li style="display: flex; gap: 0.85rem; align-items: flex-start;">
+          <span style="min-width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;">5</span>
+          <div>
+            <strong>Enter missing grades.</strong><br>
+            After the import, subjects with no grade show a <span style="color: var(--danger); font-weight: 600;">red indicator</span>. Enter the correct grade for each of these subjects.
+          </div>
+        </li>
+
+        <li style="display: flex; gap: 0.85rem; align-items: flex-start;">
+          <span style="min-width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;">6</span>
+          <div style="color: var(--text-muted);">
+            <strong style="color: var(--text-main);">(Optional) Export your results.</strong><br>
+            Click <strong style="color: var(--text-main);">Export PDF Report</strong> to save a printable summary of your academic standing and GWA.
+          </div>
+        </li>
+
+      </ol>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="confirmGuideModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div class="modal-overlay" id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+    <div class="modal card" style="max-width: 440px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--danger);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <h3 id="resetModalTitle" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Confirm Reset</h3>
+        </div>
+        <button class="btn-icon-only" id="closeResetModalBtn" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 1.25rem; line-height: 1.5;">
+        Are you sure you want to reset all evaluation data? This will clear your imported student profile, curriculum subjects, and grades.
+      </p>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelResetModalBtn">Cancel</button>
+        <button class="btn btn-danger" id="confirmResetModalBtn">Reset All Data</button>
       </div>
     </div>
   </div>

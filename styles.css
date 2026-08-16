@@ -161,7 +161,7 @@ body {
 .stat-label { color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; }
 .stat-value { font-weight: 700; font-size: 1rem; }
 
-/* Tooltip */
+/* Custom Tooltip */
 .tooltip-icon {
   display: inline-flex;
   align-items: center;
@@ -175,7 +175,56 @@ body {
   font-weight: bold;
   cursor: help;
   margin-left: 0.35rem;
-  position: relative;
+  transition: all 0.15s ease;
+}
+.tooltip-icon:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+#custom-tooltip {
+  position: fixed;
+  z-index: 999999;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  max-width: 250px;
+  text-align: center;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+#custom-tooltip.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+#custom-tooltip::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+#custom-tooltip.arrow-bottom::after {
+  top: 100%;
+  left: var(--arrow-left, 50%);
+  transform: translateX(-50%);
+  border-width: 6px 6px 0 6px;
+  border-color: #0f172a transparent transparent transparent;
+}
+#custom-tooltip.arrow-top::after {
+  bottom: 100%;
+  left: var(--arrow-left, 50%);
+  transform: translateX(-50%);
+  border-width: 0 6px 6px 6px;
+  border-color: transparent transparent #0f172a transparent;
 }
 
 /* Tabs */
@@ -386,10 +435,29 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 .btn-primary:hover { background: var(--primary-hover); }
 .btn-success { background: var(--success); color: white; }
 .btn-success:hover { background: #059669; }
-.btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca; }
-.btn-danger:hover { background: #fee2e2; }
+.btn-danger { background: #dc2626; color: #ffffff; border: 1px solid #dc2626; }
+.btn-danger:hover { background: #b91c1c; border-color: #b91c1c; }
 .btn-secondary { background: #ffffff; color: var(--text-main); border: 1px solid var(--border); }
 .btn-secondary:hover { background: #f1f5f9; }
+.btn:disabled, .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: auto !important;
+  box-shadow: none !important;
+}
+
+/* Modal Footers & Full-Width Action Buttons */
+.modal-footer {
+  display: flex;
+  gap: 0.55rem;
+  width: 100%;
+  margin-top: 1.25rem;
+}
+.modal-footer .btn {
+  flex: 1 1 0%;
+  justify-content: center;
+  text-align: center;
+}
 
 /* Hidden PDF Render Container */
 #pdfReportTemplate { display: none; }
