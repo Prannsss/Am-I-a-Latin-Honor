@@ -296,7 +296,7 @@ body {
   background: rgba(15, 23, 42, 0.6);
   display: flex; align-items: center; justify-content: center;
   opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
-  z-index: 100; padding: 1rem;
+  z-index: 2000; padding: 1rem;
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
 
@@ -461,3 +461,53 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus {
 
 /* Hidden PDF Render Container */
 #pdfReportTemplate { display: none; }
+
+/* Responsive Action Buttons & Mobile Floating Bar */
+.action-buttons-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.btn-text-short { display: none; }
+.btn-text-full { display: inline; }
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 5.5rem;
+  }
+
+  .action-buttons-group {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 900;
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .action-buttons-group .btn {
+    flex: 1 1 50%;
+    width: 50%;
+    justify-content: center;
+    text-align: center;
+    padding: 0.8rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-text-full { display: none; }
+  .btn-text-short { display: inline; }
+}
