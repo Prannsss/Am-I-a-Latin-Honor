@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Am I a Latin Honor? | USPF Latin Honor Evaluation & Grade Audit System</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="public/uspf.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="app-title">
+      <img src="public/uspf.svg" alt="USPF Logo" class="logo-img">
+      <div>
+        <h1>Am I a Latin Honor?</h1>
+        <p>USPF Latin Honor Evaluation & Grade Audit System</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <input type="file" id="pdfFileInput" accept=".pdf" style="display:none;" onchange="handlePdfSelect(event)">
+      <button class="btn btn-upload" id="uploadPdfBtn" onclick="document.getElementById('pdfFileInput').click()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Upload Evaluation PDF
+      </button>
+      <button class="btn btn-success" id="exportPdfBtn" onclick="triggerPdfExportModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="12"></line><line x1="15" y1="15" x2="12" y2="12"></line></svg>
+        Export PDF Report
+      </button>
+    </div>
+  </header>
+
+  <!-- Imported Student Banner -->
+  <div id="studentBanner" class="student-banner" style="display: none;">
+    <div class="student-banner-header">
+      <div class="student-banner-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+        <span>Student Evaluation Record Imported</span>
+        <span id="dataStateBadge" class="data-state-badge state-fresh">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Synced from PDF
+        </span>
+      </div>
+      <button class="btn btn-secondary" onclick="clearStudentBanner()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Reset</button>
+    </div>
+    <div class="student-info-grid">
+      <div>
+        <span class="info-label">Student Name</span>
+        <strong id="studentNameDisplay">-</strong>
+      </div>
+      <div>
+        <span class="info-label">Student Number</span>
+        <strong id="studentNoDisplay">-</strong>
+      </div>
+      <div>
+        <span class="info-label">Degree Program</span>
+        <strong id="studentProgramDisplay">-</strong>
+      </div>
+      <div>
+        <span class="info-label">Curriculum Year</span>
+        <strong id="curriculumYearDisplay">-</strong>
+      </div>
+      <div>
+        <span class="info-label">Year Admitted</span>
+        <strong id="yearAdmittedDisplay">-</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parsing Status / Loading / Error Banner -->
+  <div id="parseStatusBanner" class="parse-status-banner" style="display: none;">
+    <div id="parseStatusContent"></div>
+  </div>
+
+  <main class="dashboard-grid">
+    <!-- Left Column: Summary Dashboard -->
+    <aside class="summary-card card" aria-label="Evaluation Summary">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <h2 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Current Standing</h2>
+          <button class="info-btn" id="openInfoModalBtn" aria-label="System Information" title="System Information">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
+        </div>
+        <div id="statusBadge" class="status-badge status-none" aria-live="polite">
+          No Marks Inputted
+        </div>
+      </div>
+
+      <div aria-live="polite">
+        <div class="stat-box">
+          <span class="stat-label">Cumulative GWA (4-Year)
+            <span class="tooltip-icon" title="Excludes PE and NSTP as per USPF Student Handbook rules.">?</span>
+          </span>
+          <span class="stat-value" id="overallGWA">0.0000</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Evaluated Academic Units</span>
+          <span class="stat-value" id="totalUnits">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Total Subjects Entered</span>
+          <span class="stat-value" id="totalSubjects">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Disqualifying Marks (> 2.00)
+            <span class="tooltip-icon" title="Any academic grade > 2.00 or failing PE/NSTP mark strictly disqualifies from Latin honors.">?</span>
+          </span>
+          <span class="stat-value" id="disqualifyingCount" style="color: var(--danger);">0</span>
+        </div>
+      </div>
+
+      <div style="font-size: 0.8rem; color: var(--text-muted); background: #f8fafc; padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+        <strong style="color: var(--text-main); font-size: 0.85rem;">USPF Latin Honor Thresholds:</strong>
+        <ul style="padding-left: 1.1rem; margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.2rem;">
+          <li><strong>Summa Cum Laude:</strong> 1.00 – 1.20 (Max 1.50 per academic subject)</li>
+          <li><strong>Magna Cum Laude:</strong> 1.21 – 1.45 (Max 1.75 per academic subject)</li>
+          <li><strong>Cum Laude:</strong> 1.46 – 1.75 (Max 2.00 per academic subject)</li>
+          <li><strong>PE / NSTP:</strong> Excluded from GWA computation (must be passed with no failing 5.00 / DRP / INC mark)</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Right Column: Multi-Year Inputs -->
+    <section class="card" aria-label="Academic Grade Entries">
+      <nav class="year-tabs" role="tablist" aria-label="Academic Years">
+        <button class="tab-btn active" role="tab" aria-selected="true" data-year="1">1st Year</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-year="2">2nd Year</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-year="3">3rd Year</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-year="4">4th Year</button>
+      </nav>
+
+      <div id="yearContent">
+        <!-- Semester blocks rendered dynamically -->
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Primary State Storage for 4 Years x 2 Semesters (Starts Empty)
+    const state = {};
+    for (let y = 1; y <= 4; y++) {
+      state[y] = { 1: [], 2: [] };
+    }
+
+    let activeYear = 1;
+
+    // ── Session Persistence (survives F5, cleared on hard-refresh / new tab) ──
+    const SESSION_KEY = 'ailh_session_v1';
+
+    function saveToSession() {
+      try {
+        const studentInfo = {
+          student_name: document.getElementById('studentNameDisplay')?.innerText || '',
+          student_no:   document.getElementById('studentNoDisplay')?.innerText || '',
+          program:      document.getElementById('studentProgramDisplay')?.innerText || '',
+          curriculum_year: document.getElementById('curriculumYearDisplay')?.innerText || '',
+          year_admitted:   document.getElementById('yearAdmittedDisplay')?.innerText || '',
+          bannerVisible: document.getElementById('studentBanner')?.style.display !== 'none'
+        };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ state, studentInfo, activeYear }));
+      } catch (e) {
+        console.warn('Could not save session:', e);
+      }
+    }
+
+    function loadFromSession() {
+      try {
+        const raw = sessionStorage.getItem(SESSION_KEY);
+        if (!raw) return false;
+        const { state: saved, studentInfo, activeYear: savedYear } = JSON.parse(raw);
+
+        // Restore grade state
+        for (let y = 1; y <= 4; y++) {
+          if (saved[y]) {
+            state[y][1] = saved[y][1] || [];
+            state[y][2] = saved[y][2] || [];
+          }
+        }
+
+        // Restore active year tab
+        if (savedYear) {
+          activeYear = savedYear;
+          document.querySelectorAll('.tab-btn').forEach(btn => {
+            const active = parseInt(btn.dataset.year) === activeYear;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+        }
+
+        // Restore student banner
+        if (studentInfo?.bannerVisible) {
+          document.getElementById('studentNameDisplay').innerText    = studentInfo.student_name    || '';
+          document.getElementById('studentNoDisplay').innerText      = studentInfo.student_no      || '';
+          document.getElementById('studentProgramDisplay').innerText = studentInfo.program         || '';
+          document.getElementById('curriculumYearDisplay').innerText = studentInfo.curriculum_year || '';
+          document.getElementById('yearAdmittedDisplay').innerText   = studentInfo.year_admitted   || '';
+          document.getElementById('studentBanner').style.display = 'flex';
+          updateBannerDataState('fresh');
+        }
+
+        renderActiveYear();
+        calculateGWA();
+        return true;
+      } catch (e) {
+        console.warn('Could not restore session:', e);
+        return false;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setupEvents();
+      renderActiveYear();
+      calculateGWA();
+      // Restore previous session; only auto-load sample PDF if nothing is stored
+      const restored = loadFromSession();
+      if (!restored) autoLoadEvaluationPdf();
+    });
+
+    function showParseLoadingState(message) {
+      const banner = document.getElementById("parseStatusBanner");
+      const content = document.getElementById("parseStatusContent");
+      if (!banner || !content) return;
+
+      banner.className = "parse-status-banner loading";
+      banner.style.display = "flex";
+      content.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin-icon"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+          <strong>Parsing Evaluation Record:</strong> <span>${escapeHtml(message)}</span>
+        </div>
+      `;
+    }
+
+    function showParseErrorState(errorMsg) {
+      const banner = document.getElementById("parseStatusBanner");
+      const content = document.getElementById("parseStatusContent");
+      if (!banner || !content) return;
+
+      banner.className = "parse-status-banner error";
+      banner.style.display = "flex";
+      content.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <div>
+            <strong>Evaluation Import Error:</strong> <span>${escapeHtml(errorMsg)}</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="hideParseStatusBanner()" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Dismiss</button>
+      `;
+    }
+
+    function hideParseStatusBanner() {
+      const banner = document.getElementById("parseStatusBanner");
+      if (banner) banner.style.display = "none";
+    }
+
+    function updateBannerDataState(stateType) {
+      const badge = document.getElementById("dataStateBadge");
+      if (!badge) return;
+
+      if (stateType === "fresh") {
+        badge.className = "data-state-badge state-fresh";
+        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Synced from PDF`;
+      } else if (stateType === "stale") {
+        badge.className = "data-state-badge state-stale";
+        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Manual Edits Applied`;
+      } else if (stateType === "auto-loaded") {
+        badge.className = "data-state-badge state-fresh";
+        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Sample PDF Loaded`;
+      }
+    }
+
+    async function autoLoadEvaluationPdf() {
+      showParseLoadingState("Loading sample evaluation record...");
+      try {
+        const response = await fetch("evaluation_of_student.pdf");
+        if (response.ok) {
+          const buffer = await response.arrayBuffer();
+          const parsedData = await parseUspfEvaluationPdf(buffer);
+          if (parsedData && !parsedData.error) {
+            populateParsedData(parsedData);
+            hideParseStatusBanner();
+            updateBannerDataState("auto-loaded");
+            return;
+          }
+        }
+      } catch (err) {
+        console.log("Auto-load evaluation PDF skipped:", err);
+      }
+      hideParseStatusBanner();
+    }
+
+    async function handlePdfSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const uploadBtn = document.getElementById("uploadPdfBtn");
+      const originalBtnText = uploadBtn ? uploadBtn.innerHTML : "Upload Evaluation PDF";
+
+      if (uploadBtn) {
+        uploadBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin-icon"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+          Parsing PDF...
+        `;
+        uploadBtn.disabled = true;
+      }
+
+      showParseLoadingState(`Parsing uploaded PDF "${file.name}"...`);
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // 1. Try client-side in-browser PDF parsing (Works 100% on GitHub Pages without server!)
+        let data = null;
+        let parseErr = null;
+        try {
+          data = await parseUspfEvaluationPdf(arrayBuffer);
+        } catch (clientErr) {
+          console.warn("Client-side PDF parse failed, trying server API fallback...", clientErr);
+          parseErr = clientErr.message;
+        }
+
+        // 2. Fallback to server endpoint if client-side didn't return valid student data
+        if (!data || data.error || !data.student || !data.student.student_name) {
+          try {
+            const response = await fetch("/api/parse-pdf", {
+              method: "POST",
+              headers: { "Content-Type": "application/pdf" },
+              body: arrayBuffer
+            });
+            if (response.ok) {
+              data = await response.json();
+            }
+          } catch (srvErr) {
+            console.warn("Server endpoint fallback unreached:", srvErr);
+          }
+        }
+
+        if (data && !data.error && data.student && (data.student.student_name || data.student.student_no)) {
+          populateParsedData(data);
+          hideParseStatusBanner();
+          updateBannerDataState("fresh");
+        } else {
+          const errorMsg = (data && data.error) || parseErr || "Could not parse evaluation PDF. Please check if file is a valid USPF Evaluation PDF.";
+          showParseErrorState(errorMsg);
+        }
+
+      } catch (err) {
+        console.error("PDF upload error:", err);
+        showParseErrorState("Error reading PDF file: " + err.message);
+      } finally {
+        if (uploadBtn) {
+          uploadBtn.innerHTML = originalBtnText;
+          uploadBtn.disabled = false;
+        }
+        event.target.value = "";
+      }
+    }
+
+    // In-Browser PDF.js Parser for USPF Evaluation Records (Runs on GitHub Pages)
+    async function parseUspfEvaluationPdf(arrayBuffer) {
+      if (typeof pdfjsLib === 'undefined') {
+        throw new Error("PDF.js library is not loaded.");
+      }
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      if (pdf.numPages === 0) throw new Error("Empty PDF file.");
+      
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1.0 });
+      const textContent = await page.getTextContent();
+      const pageWidth = viewport.width;
+
+      // Extract full raw text for student info regex & validation
+      const fullText = textContent.items.map(item => item.str).join(' ');
+
+      // Validate USPF PDF Document
+      if (!/University\s+Of\s+Southern\s+Philippines\s+Foundation|USPF/i.test(fullText)) {
+        throw new Error("The uploaded PDF is not a valid USPF Evaluation Record.");
+      }
+
+      const studentNoMatch = fullText.match(/Student No:\s*(\d+)/i);
+      const studentNameMatch = fullText.match(/Student Name:\s*([^\-]+)/i);
+      const currYearMatch = fullText.match(/Curriculum Year\s*([\d\-]+)/i);
+      const yearAdmittedMatch = fullText.match(/Year Admitted:\s*([\d\-]+)/i);
+
+      const programMatch = fullText.match(/\b([A-Z]{2,6}\s*[\-\–]\s*Bachelor.+?)(?=\s+Curriculum|\s+Student|\s+Year|\r|\n|$)/i) || fullText.match(/\b([A-Z]{2,6}\s*[\-\–]\s*.+?)(?=\s+Curriculum|\s+Student|\s+Year|\r|\n|$)/i);
+      const programStr = programMatch ? programMatch[1].trim() : 'USPF 4-Year Degree Program';
+
+      const studentInfo = {
+        student_no: studentNoMatch ? studentNoMatch[1] : '',
+        student_name: studentNameMatch ? studentNameMatch[1].trim() : '',
+        program: programStr,
+        curriculum_year: currYearMatch ? currYearMatch[1] : '',
+        year_admitted: yearAdmittedMatch ? yearAdmittedMatch[1] : ''
+      };
+
+      // Map text items with coordinates
+      const items = textContent.items.map(item => ({
+        text: item.str.trim(),
+        x: item.transform[4],
+        top: viewport.height - item.transform[5]
+      })).filter(item => item.text.length > 0);
+
+      // Group into vertical line buckets
+      const lineBuckets = [];
+      items.forEach(item => {
+        let found = false;
+        for (let bucket of lineBuckets) {
+          if (Math.abs(bucket.top - item.top) < 3.5) {
+            bucket.items.push(item);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          lineBuckets.push({ top: item.top, items: [item] });
+        }
+      });
+
+      // Sort lines top-to-bottom
+      lineBuckets.sort((a, b) => a.top - b.top);
+
+      const leftLines = [];
+      const rightLines = [];
+
+      lineBuckets.forEach(bucket => {
+        bucket.items.sort((a, b) => a.x - b.x);
+        const lWords = bucket.items.filter(i => i.x < pageWidth / 2).map(i => i.text);
+        const rWords = bucket.items.filter(i => i.x >= pageWidth / 2).map(i => i.text);
+
+        const lStr = lWords.join(' ').trim();
+        const rStr = rWords.join(' ').trim();
+
+        if (lStr) leftLines.push(lStr);
+        if (rStr) rightLines.push(rStr);
+      });
+
+      const parsedData = {
+        student: studentInfo,
+        years: { 1: { 1: [], 2: [] }, 2: { 1: [], 2: [] }, 3: { 1: [], 2: [] }, 4: { 1: [], 2: [] } }
+      };
+
+      const progCode = programStr.includes('-') ? programStr.split('-')[0].trim() : '';
+
+      function processSide(linesList, semNum) {
+        let activeYear = 1;
+        let currentSubj = null;
+
+        linesList.forEach(line => {
+          if (['University Of Southern', 'Salinas Drive', 'Curriculum Year', 'Student No:', 'Total credited', 'Total No.', 'Legend:', 'Printed By', '================'].some(hdr => line.includes(hdr))) return;
+          if (line.includes('Bachelor') || (progCode && line.startsWith(progCode))) return;
+          if (line.includes('August 16') || line.startsWith('FS -') || line.startsWith('SS -') || line.startsWith('SU -') || line.startsWith('T -')) return;
+
+          // Year-separator lines like "this is the correct subject 26" —
+          // they may embed a unit total that signals a year transition.
+          if (line.includes('this is the correct subject')) {
+            const trailingNum = line.match(/(\d+(?:\.\d+)?)\s*$/);
+            if (trailingNum) {
+              activeYear = Math.min(activeYear + 1, 4);
+              currentSubj = null;
+            }
+            return;
+          }
+
+          if (/^\d+(?:\.\d+)?$/.test(line.trim())) {
+            activeYear = Math.min(activeYear + 1, 4);
+            currentSubj = null;
+            return;
+          }
+
+          const m1 = line.match(/^(\d\.\d)\s+(?:([FSSU]{2}\d{2}\-\d{2})\s+)?([A-Z]{2,6}\s*[\d\-]*[A-Z0-9]*)\s+(.+?)\s+(\d+(?:\.\d+)?)$/);
+          const m2 = line.match(/^_______\s+(?:([FSSU]{2}\d{2}\-\d{2})\s+)?([A-Z]{2,6}\s*[\d\-]*[A-Z0-9]*)\s+(.+?)\s+(\d+(?:\.\d+)?)$/);
+          const m3 = line.match(/^(?:([FSSU]{2}\d{2}\-\d{2})\s+)?([A-Z]{2,6}\s*[\d\-]*[A-Z0-9]*)\s+(.+?)\s+(\d+(?:\.\d+)?)$/);
+
+          const m = m1 || m2 || m3;
+          if (m) {
+            let gradeVal = null;
+            let termStr = '';
+            let codeStr = '';
+            let titleStr = '';
+            let unitsVal = 3.0;
+
+            if (m1) {
+              gradeVal = parseFloat(m1[1]);
+              termStr = m1[2] || '';
+              codeStr = m1[3].trim();
+              titleStr = m1[4].trim();
+              unitsVal = parseFloat(m1[5]);
+            } else if (m2) {
+              gradeVal = null;
+              termStr = m2[1] || '';
+              codeStr = m2[2].trim();
+              titleStr = m2[3].trim();
+              unitsVal = parseFloat(m2[4]);
+            } else {
+              gradeVal = null;
+              termStr = m3[1] || '';
+              codeStr = m3[2].trim();
+              titleStr = m3[3].trim();
+              unitsVal = parseFloat(m3[4]);
+            }
+
+            if (termStr) {
+              if (termStr.includes('23-24')) activeYear = 1;
+              else if (termStr.includes('24-25')) activeYear = 2;
+              else if (termStr.includes('25-26')) activeYear = 3;
+              else if (termStr.includes('26-27')) activeYear = 4;
+            }
+
+            const isPENSTP = /\b(PE\d*|NSTP\d*|SOCOR)\b/i.test(`${codeStr} ${titleStr}`);
+
+            const subjObj = {
+              code: codeStr,
+              title: titleStr,
+              name: `${codeStr} - ${titleStr}`,
+              units: unitsVal,
+              grade: gradeVal,
+              term: termStr,
+              isPENSTP: isPENSTP
+            };
+
+            if (parsedData.years[activeYear] && parsedData.years[activeYear][semNum]) {
+              parsedData.years[activeYear][semNum].push(subjObj);
+            }
+            currentSubj = subjObj;
+          } else {
+            if (currentSubj && line.trim() && !line.startsWith('this is')) {
+              currentSubj.title += ' ' + line.trim();
+              currentSubj.name = `${currentSubj.code} - ${currentSubj.title}`;
+            }
+          }
+        });
+      }
+
+      processSide(leftLines, 1);
+      processSide(rightLines, 2);
+
+      return parsedData;
+    }
+
+    function populateParsedData(data) {
+      // 1. Populate Student Banner
+      if (data.student) {
+        document.getElementById("studentNameDisplay").innerText = data.student.student_name || "N/A";
+        document.getElementById("studentNoDisplay").innerText = data.student.student_no || "N/A";
+        document.getElementById("studentProgramDisplay").innerText = data.student.program || "USPF 4-Year Degree Program";
+        document.getElementById("curriculumYearDisplay").innerText = data.student.curriculum_year || "N/A";
+        document.getElementById("yearAdmittedDisplay").innerText = data.student.year_admitted || "N/A";
+        document.getElementById("studentBanner").style.display = "flex";
+      }
+
+      // 2. Populate 4-Year State Grid
+      if (data.years) {
+        for (let y = 1; y <= 4; y++) {
+          for (let s = 1; s <= 2; s++) {
+            if (data.years[y] && data.years[y][s]) {
+              state[y][s] = data.years[y][s];
+            }
+          }
+        }
+      }
+
+      // 3. Re-render UI & recalculate GWA
+      renderActiveYear();
+      calculateGWA();
+      saveToSession();
+    }
+
+    function clearStudentBanner() {
+      sessionStorage.removeItem(SESSION_KEY);
+      document.getElementById("studentBanner").style.display = "none";
+      for (let y = 1; y <= 4; y++) {
+        state[y] = { 1: [], 2: [] };
+      }
+      renderActiveYear();
+      calculateGWA();
+    }
+
+    function setupEvents() {
+      // Tab switching logic
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          document.querySelectorAll(".tab-btn").forEach(b => {
+            b.classList.remove("active");
+            b.setAttribute("aria-selected", "false");
+          });
+          e.target.classList.add("active");
+          e.target.setAttribute("aria-selected", "true");
+          activeYear = parseInt(e.target.dataset.year);
+          renderActiveYear();
+        });
+      });
+
+      // Info Modal Events
+      const infoModal = document.getElementById("infoModal");
+      const openBtn = document.getElementById("openInfoModalBtn");
+      const closeBtn = document.getElementById("closeInfoModalBtn");
+      const confirmBtn = document.getElementById("confirmInfoModalBtn");
+
+      if (openBtn && infoModal) openBtn.addEventListener("click", () => infoModal.classList.add("open"));
+      if (closeBtn && infoModal) closeBtn.addEventListener("click", () => infoModal.classList.remove("open"));
+      if (confirmBtn && infoModal) confirmBtn.addEventListener("click", () => infoModal.classList.remove("open"));
+      if (infoModal) {
+        infoModal.addEventListener("click", (e) => {
+          if (e.target === infoModal) infoModal.classList.remove("open");
+        });
+      }
+
+      // Delete Modal Events
+      const deleteModal = document.getElementById("deleteModal");
+      if (deleteModal) {
+        document.getElementById("closeDeleteModalBtn").addEventListener("click", () => deleteModal.classList.remove("open"));
+        document.getElementById("cancelDeleteModalBtn").addEventListener("click", () => deleteModal.classList.remove("open"));
+        document.getElementById("executeDeleteModalBtn").addEventListener("click", () => {
+          if (pendingDeleteTarget) {
+            removeSubjectRow(pendingDeleteTarget.year, pendingDeleteTarget.sem, pendingDeleteTarget.index);
+            pendingDeleteTarget = null;
+          }
+          deleteModal.classList.remove("open");
+        });
+        deleteModal.addEventListener("click", (e) => {
+          if (e.target === deleteModal) deleteModal.classList.remove("open");
+        });
+      }
+
+      // Export PDF Modal Events
+      const exportPdfModal = document.getElementById("exportPdfModal");
+      if (exportPdfModal) {
+        document.getElementById("closeExportPdfModalBtn").addEventListener("click", () => exportPdfModal.classList.remove("open"));
+        document.getElementById("cancelExportPdfModalBtn").addEventListener("click", () => exportPdfModal.classList.remove("open"));
+        document.getElementById("confirmExportPdfModalBtn").addEventListener("click", () => {
+          exportPdfModal.classList.remove("open");
+          generatePDF();
+        });
+        exportPdfModal.addEventListener("click", (e) => {
+          if (e.target === exportPdfModal) exportPdfModal.classList.remove("open");
+        });
+      }
+    }
+
+    function renderActiveYear() {
+      const container = document.getElementById("yearContent");
+      container.innerHTML = "";
+
+      [1, 2].forEach(sem => {
+        const semDiv = document.createElement("div");
+        semDiv.className = "sem-block";
+        
+        semDiv.innerHTML = `
+          <div class="sem-header">
+            <div>
+              <span>${sem === 1 ? "1st" : "2nd"} Semester</span>
+              <span id="sem-gwa-badge-${activeYear}-${sem}" class="sem-gwa-badge">Sem GWA: 0.0000</span>
+            </div>
+            <button class="btn btn-primary" onclick="addSubjectRow(${activeYear}, ${sem})">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Add Subject
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 45%;">Code / Subject Title</th>
+                  <th style="width: 15%;">Units</th>
+                  <th style="width: 18%;">Grade (1.00 - 5.00)</th>
+                  <th style="width: 12%;">PE/NSTP?</th>
+                  <th style="width: 10%;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-${activeYear}-${sem}"></tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(semDiv);
+        renderSemesterRows(activeYear, sem);
+      });
+    }
+
+    function formatGrade(val) {
+      if (val === null || val === undefined || isNaN(val) || val === '') return '';
+      const num = parseFloat(val);
+      if (isNaN(num)) return '';
+      if (Number.isInteger(num)) {
+        return num.toFixed(1);
+      }
+      return num.toString();
+    }
+
+    let pendingDeleteTarget = null;
+
+    function renderSemesterRows(year, sem) {
+      const tbody = document.getElementById(`tbody-${year}-${sem}`);
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const subjects = state[year][sem];
+      subjects.forEach((subj, index) => {
+        const isMissingGrade = subj.grade === null || subj.grade === undefined || subj.grade === '' || isNaN(subj.grade) || subj.grade === 0;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <input type="text" value="${escapeHtml(subj.name)}" 
+              placeholder="e.g. IT 211 - Web Development" 
+              aria-label="Subject name"
+              oninput="updateSubject(${year}, ${sem}, ${index}, 'name', this.value)">
+          </td>
+          <td>
+            <input type="number" min="0" max="10" step="1" value="${subj.units}" 
+              aria-label="Subject units"
+              oninput="updateSubject(${year}, ${sem}, ${index}, 'units', parseFloat(this.value) || 0)">
+          </td>
+          <td>
+            <div class="grade-cell-wrapper ${isMissingGrade ? 'missing-grade' : ''}">
+              <input type="number" min="1.0" max="5.0" step="0.25" value="${formatGrade(subj.grade)}" 
+                placeholder="1.0" 
+                aria-label="Subject grade"
+                oninput="updateSubject(${year}, ${sem}, ${index}, 'grade', parseFloat(this.value) || null); updateGradeBadge(this)">
+              <span class="missing-badge" title="Grade missing / pending" ${isMissingGrade ? '' : 'style="display:none;"'}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </span>
+            </div>
+          </td>
+          <td style="text-align: center;">
+            <input type="checkbox" ${Boolean(subj.isPENSTP) ? 'checked' : ''} 
+              aria-label="PE or NSTP subject"
+              onchange="updateSubject(${year}, ${sem}, ${index}, 'isPENSTP', this.checked)">
+          </td>
+          <td>
+            <button class="btn btn-danger" aria-label="Delete subject" title="Delete subject" onclick="confirmDeleteSubjectRow(${year}, ${sem}, ${index})">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function confirmDeleteSubjectRow(year, sem, index) {
+      pendingDeleteTarget = { year, sem, index };
+      const subj = state[year][sem][index];
+      const targetName = subj && subj.name ? `"${subj.name}"` : 'this subject';
+      document.getElementById('deleteSubjectNameTarget').innerText = targetName;
+      document.getElementById('deleteModal').classList.add('open');
+    }
+
+    function removeSubjectRow(year, sem, index) {
+      state[year][sem].splice(index, 1);
+      renderSemesterRows(year, sem);
+      calculateGWA();
+      updateBannerDataState('stale');
+      saveToSession();
+    }
+
+    function addSubjectRow(year, sem) {
+      state[year][sem].push({ name: "", units: 3, grade: 1.00, isPENSTP: false });
+      renderSemesterRows(year, sem);
+      calculateGWA();
+      updateBannerDataState('stale');
+      saveToSession();
+    }
+
+    function updateSubject(year, sem, index, key, value) {
+      if (key === 'isPENSTP') {
+        state[year][sem][index][key] = Boolean(value);
+      } else {
+        state[year][sem][index][key] = value;
+      }
+      calculateGWA();
+      updateBannerDataState('stale');
+      saveToSession();
+    }
+
+    // Instantly toggle the missing-grade badge when a grade input changes
+    function updateGradeBadge(input) {
+      const val = parseFloat(input.value);
+      const isMissing = !input.value || isNaN(val) || val <= 0;
+      const wrapper = input.closest('.grade-cell-wrapper');
+      if (!wrapper) return;
+      wrapper.classList.toggle('missing-grade', isMissing);
+      const badge = wrapper.querySelector('.missing-badge');
+      if (badge) badge.style.display = isMissing ? '' : 'none';
+    }
+
+    function triggerPdfExportModal() {
+      let totalSubj = 0;
+      let missingGradeCount = 0;
+
+      for (let y = 1; y <= 4; y++) {
+        for (let s = 1; s <= 2; s++) {
+          state[y][s].forEach(subj => {
+            totalSubj++;
+            if (subj.grade === null || subj.grade === undefined || subj.grade === '' || isNaN(subj.grade) || subj.grade === 0) {
+              missingGradeCount++;
+            }
+          });
+        }
+      }
+
+      const modalContent = document.getElementById('exportPdfModalContent');
+      const exportBtnText = document.getElementById('exportPdfBtnText');
+
+      if (missingGradeCount > 0) {
+        modalContent.innerHTML = `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 0.85rem; color: #991b1b; display: flex; gap: 0.75rem; align-items: flex-start;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <div>
+              <strong style="font-size: 0.95rem;">Incomplete Grade Record Warning</strong>
+              <p style="margin-top: 0.25rem;">There are <strong>${missingGradeCount} subject(s)</strong> with blank or missing grades in your evaluation record.</p>
+              <p style="margin-top: 0.35rem; font-weight: 600; color: #b91c1c;">The information is still incomplete. Export anyway?</p>
+            </div>
+          </div>
+        `;
+        exportBtnText.innerText = "Export Anyway";
+      } else {
+        modalContent.innerHTML = `
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.85rem; color: #166534; display: flex; gap: 0.75rem; align-items: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <div>
+              <strong style="font-size: 0.95rem;">Evaluation Record Complete</strong>
+              <p style="margin-top: 0.25rem;">All ${totalSubj} entered subject grades are recorded and verified.</p>
+            </div>
+          </div>
+        `;
+        exportBtnText.innerText = "Export PDF";
+      }
+
+      document.getElementById('exportPdfModal').classList.add('open');
+    }
+
+    function updateSubject(year, sem, index, key, value) {
+      if (key === 'isPENSTP') {
+        state[year][sem][index][key] = Boolean(value);
+      } else {
+        state[year][sem][index][key] = value;
+      }
+      calculateGWA();
+    }
+
+    function calculateGWA() {
+      let totalQualityPoints = 0;
+      let totalAcademicUnits = 0;
+      let disqualifyingCount = 0;
+      let totalEnteredSubjects = 0;
+
+      for (let y = 1; y <= 4; y++) {
+        for (let s = 1; s <= 2; s++) {
+          let semQP = 0;
+          let semUnits = 0;
+
+          state[y][s].forEach(subj => {
+            if (subj.grade === null || subj.grade === undefined || isNaN(subj.grade) || subj.grade <= 0 || subj.units <= 0) return;
+
+            totalEnteredSubjects++;
+            const isPE = Boolean(subj.isPENSTP);
+
+            // USPF Disqualification Check (>2.00 academic or fail >3.00 PE/NSTP)
+            if (!isPE && subj.grade > 2.00) {
+              disqualifyingCount++;
+            } else if (isPE && subj.grade > 3.00) {
+              disqualifyingCount++;
+            }
+
+            // GWA computation strictly excluding PE/NSTP non-academic subjects
+            if (!isPE) {
+              semQP += (subj.grade * subj.units);
+              semUnits += subj.units;
+              totalQualityPoints += (subj.grade * subj.units);
+              totalAcademicUnits += subj.units;
+            }
+          });
+
+          // Update Semester GWA Badge if visible
+          const semBadge = document.getElementById(`sem-gwa-badge-${y}-${s}`);
+          if (semBadge) {
+            const semGWA = semUnits > 0 ? (semQP / semUnits).toFixed(4) : "N/A";
+            semBadge.innerText = `Sem GWA: ${semGWA}`;
+          }
+        }
+      }
+
+      const overallGWA = totalAcademicUnits > 0 ? (totalQualityPoints / totalAcademicUnits) : 0;
+
+      // Update Dashboard UI Stats
+      document.getElementById("overallGWA").innerText = overallGWA > 0 ? overallGWA.toFixed(4) : "0.0000";
+      document.getElementById("totalUnits").innerText = totalAcademicUnits;
+      document.getElementById("totalSubjects").innerText = totalEnteredSubjects;
+      document.getElementById("disqualifyingCount").innerText = disqualifyingCount;
+
+      updateStatusBadge(overallGWA, disqualifyingCount, totalEnteredSubjects);
+    }
+
+    function getHonorStatusText(gwa, disqualifyingCount, subjectCount) {
+      if (subjectCount === 0) return { title: "No Marks Inputted", class: "status-none" };
+      if (disqualifyingCount > 0) return { title: "Disqualified (Grade > 2.00 / Failed PE/NSTP)", class: "status-disqualified" };
+
+      if (gwa >= 1.00 && gwa <= 1.20) return { title: "Summa Cum Laude", class: "status-summa" };
+      if (gwa >= 1.21 && gwa <= 1.45) return { title: "Magna Cum Laude", class: "status-magna" };
+      if (gwa >= 1.46 && gwa <= 1.75) return { title: "Cum Laude", class: "status-cum" };
+      return { title: "Not Qualified (GWA > 1.75)", class: "status-none" };
+    }
+
+    function updateStatusBadge(gwa, disqualifyingCount, subjectCount) {
+      const badge = document.getElementById("statusBadge");
+      const status = getHonorStatusText(gwa, disqualifyingCount, subjectCount);
+      badge.className = `status-badge ${status.class}`;
+      badge.innerText = status.title;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // PDF Export Engine
+    function generatePDF() {
+      let totalQualityPoints = 0;
+      let totalAcademicUnits = 0;
+      let disqualifyingCount = 0;
+      let totalEnteredSubjects = 0;
+
+      let yearsTablesHTML = "";
+
+      for (let y = 1; y <= 4; y++) {
+        let yearHasData = false;
+        let yearHTML = `<div class="pdf-year-block">
+          <h3 style="font-size: 13pt; color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px; margin-bottom: 10px;">Year ${y} Academic Evaluation</h3>`;
+
+        for (let s = 1; s <= 2; s++) {
+          const subjects = state[y][s];
+          if (subjects.length === 0) continue;
+
+          yearHasData = true;
+          let semQP = 0;
+          let semUnits = 0;
+
+          let rowsHTML = "";
+          subjects.forEach(subj => {
+            if (!subj.grade || subj.units <= 0) return;
+
+            totalEnteredSubjects++;
+            if (!subj.isPENSTP && subj.grade > 2.00) disqualifyingCount++;
+            else if (subj.isPENSTP && subj.grade > 3.00) disqualifyingCount++;
+
+            const isPE = Boolean(subj.isPENSTP);
+            if (!isPE) {
+              semQP += (subj.grade * subj.units);
+              semUnits += subj.units;
+              totalQualityPoints += (subj.grade * subj.units);
+              totalAcademicUnits += subj.units;
+            }
+
+            rowsHTML += `
+              <tr>
+                <td style="padding: 5px 8px; border-bottom: 1px solid #e2e8f0; font-size: 9pt;">${escapeHtml(subj.name)}</td>
+                <td style="padding: 5px 8px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 9pt;">${subj.units}</td>
+                <td style="padding: 5px 8px; border-bottom: 1px solid #e2e8f0; text-align: center; font-weight: bold; font-size: 9pt; ${(!isPE && subj.grade > 2.00) || (isPE && subj.grade > 3.00) ? 'color: #dc2626;' : ''}">${formatGrade(subj.grade)}</td>
+                <td style="padding: 5px 8px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 8pt; color: #64748b;">${isPE ? 'Yes (Excluded from GWA)' : 'No'}</td>
+              </tr>
+            `;
+          });
+
+          const semGWA = semUnits > 0 ? (semQP / semUnits).toFixed(4) : "N/A";
+
+          yearHTML += `
+            <div class="pdf-sem-block">
+              <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 10pt; margin-bottom: 5px; color: #0f172a;">
+                <span>${s === 1 ? '1st' : '2nd'} Semester</span>
+                <span style="color: #2563eb;">Semester GWA: ${semGWA}</span>
+              </div>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 6px;">
+                <thead>
+                  <tr style="background: #f1f5f9; text-align: left; font-size: 8pt; color: #475569;">
+                    <th style="padding: 5px 8px; border-bottom: 1.5px solid #cbd5e1;">Subject Name / Code</th>
+                    <th style="padding: 5px 8px; border-bottom: 1.5px solid #cbd5e1; text-align: center; width: 55px;">Units</th>
+                    <th style="padding: 5px 8px; border-bottom: 1.5px solid #cbd5e1; text-align: center; width: 70px;">Grade</th>
+                    <th style="padding: 5px 8px; border-bottom: 1.5px solid #cbd5e1; text-align: center; width: 100px;">PE / NSTP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHTML || '<tr><td colspan="4" style="padding: 8px; text-align: center; color: #94a3b8;">No subjects recorded</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        yearHTML += `</div>`;
+        if (yearHasData) yearsTablesHTML += yearHTML;
+      }
+
+      if (!yearsTablesHTML) {
+        yearsTablesHTML = `<div style="text-align: center; padding: 40px; color: #64748b; font-style: italic;">No course grades entered yet.</div>`;
+      }
+
+      const overallGWA = totalAcademicUnits > 0 ? (totalQualityPoints / totalAcademicUnits) : 0;
+      const honorStatus = getHonorStatusText(overallGWA, disqualifyingCount, totalEnteredSubjects);
+
+      const pdfContainer = document.createElement("div");
+      pdfContainer.style.padding = "15px 20px";
+      pdfContainer.style.fontFamily = "'Segoe UI', Helvetica, Arial, sans-serif";
+      pdfContainer.style.color = "#0f172a";
+      pdfContainer.style.backgroundColor = "#ffffff";
+      pdfContainer.style.width = "700px";
+
+      pdfContainer.innerHTML = `
+        <style>
+          .pdf-year-block { page-break-inside: avoid; break-inside: avoid; margin-bottom: 18px; }
+          .pdf-sem-block { page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px; }
+          .pdf-summary-box { page-break-inside: avoid; break-inside: avoid; }
+          .pdf-header-block { page-break-inside: avoid; break-inside: avoid; }
+          .pdf-disclaimer { page-break-inside: avoid; break-inside: avoid; }
+          tr { page-break-inside: avoid; break-inside: avoid; }
+        </style>
+        <div class="pdf-header-block" style="border-bottom: 3px double #1e3a8a; padding-bottom: 12px; margin-bottom: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h1 style="font-size: 16pt; color: #1e3a8a; margin: 0; text-transform: uppercase;">University of Southern Philippines Foundation</h1>
+              <h2 style="font-size: 11pt; color: #475569; margin: 4px 0 0 0; font-weight: 600;">${escapeHtml((document.getElementById("studentProgramDisplay") && document.getElementById("studentProgramDisplay").innerText !== '-') ? document.getElementById("studentProgramDisplay").innerText : "USPF 4-Year Degree Program")}</h2>
+              <p style="font-size: 9pt; color: #64748b; margin: 2px 0 0 0;">Official Latin Honor Evaluation Summary & Grade Audit</p>
+            </div>
+            <div style="text-align: right; font-size: 8pt; color: #64748b;">
+              <p style="margin:0;">Date Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p style="margin:2px 0 0 0;">Status: Progress Audit</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdf-summary-box" style="display: flex; gap: 12px; margin-bottom: 18px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <div style="flex: 1;">
+            <div style="font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold;">Evaluated Honor Standing</div>
+            <div style="font-size: 13pt; font-weight: bold; margin-top: 4px; color: ${disqualifyingCount > 0 ? '#dc2626' : '#1e3a8a'};">
+              ${honorStatus.title}
+            </div>
+          </div>
+          <div style="flex: 1; border-left: 1px solid #cbd5e1; padding-left: 12px;">
+            <div style="font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold;">Cumulative GWA</div>
+            <div style="font-size: 13pt; font-weight: bold; margin-top: 4px; color: #0f172a;">
+              ${overallGWA > 0 ? overallGWA.toFixed(4) : '0.0000'}
+            </div>
+          </div>
+          <div style="flex: 1; border-left: 1px solid #cbd5e1; padding-left: 12px;">
+            <div style="font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold;">Academic Units Evaluated</div>
+            <div style="font-size: 13pt; font-weight: bold; margin-top: 4px; color: #0f172a;">
+              ${totalAcademicUnits} Units
+            </div>
+          </div>
+        </div>
+
+        ${yearsTablesHTML}
+
+        <div class="pdf-disclaimer" style="margin-top: 24px; font-size: 8pt; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+          <strong>USPF Latin Honor Policy Disclaimer:</strong>
+          Summa Cum Laude (1.00–1.20, max 1.50 per subject), Magna Cum Laude (1.21–1.45, max 1.75 per subject), Cum Laude (1.46–1.75, max 2.00 per subject). PE and NSTP are excluded from GWA calculation, but must contain no failing marks (5.00), DRP, or INC status.
+        </div>
+      `;
+
+      const opt = {
+        margin:       [15, 12, 15, 12],
+        filename:     'Am_I_a_Latin_Honor_Evaluation.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'], avoid: ['.pdf-year-block', '.pdf-sem-block', '.pdf-summary-box', '.pdf-header-block', '.pdf-disclaimer', 'tr'] }
+      };
+
+      html2pdf().set(opt).from(pdfContainer).save();
+    }
+  </script>
+
+  <!-- System Information Modal -->
+  <div class="modal-overlay" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+    <div class="modal card" style="max-width: 480px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <h3 id="infoModalTitle" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">System Information</h3>
+        </div>
+        <button class="btn-icon-only" id="closeInfoModalBtn" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.85rem; color: #92400e;">
+          <strong>Notice:</strong> This system evaluates academic standing for all 4-year degree programs offered by USPF. Official evaluations remain subject to university policy updates and registrar verification.
+          <br><br>
+          <strong>Disclaimer:</strong> This system is for self-evaluation purposes only and is based on the school's own Student Handbook or commonly referred to as the Student Manual.
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+          <div><strong>Last updated:</strong> August 16, 2026</div>
+          <div><strong>Developer:</strong> France Laurence Velarde</div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+        <button class="btn btn-primary" id="confirmInfoModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div class="modal card" style="max-width: 440px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--danger);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <h3 id="deleteModalTitle" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Confirm Delete Subject</h3>
+        </div>
+        <button class="btn-icon-only" id="closeDeleteModalBtn" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 1.25rem; line-height: 1.5;">
+        Are you sure you want to delete <strong id="deleteSubjectNameTarget">this subject</strong>?
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button class="btn btn-secondary" id="cancelDeleteModalBtn">Cancel</button>
+        <button class="btn btn-danger" id="executeDeleteModalBtn">Delete Subject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Export Confirmation Modal -->
+  <div class="modal-overlay" id="exportPdfModal" role="dialog" aria-modal="true" aria-labelledby="exportPdfModalTitle">
+    <div class="modal card" style="max-width: 480px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="12"></line><line x1="15" y1="15" x2="12" y2="12"></line></svg>
+          <h3 id="exportPdfModalTitle" style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Export Evaluation PDF</h3>
+        </div>
+        <button class="btn-icon-only" id="closeExportPdfModalBtn" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div id="exportPdfModalContent" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem; color: var(--text-main);">
+        <!-- Dynamically rendered -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+        <button class="btn btn-secondary" id="cancelExportPdfModalBtn">Cancel</button>
+        <button class="btn btn-success" id="confirmExportPdfModalBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="12"></line><line x1="15" y1="15" x2="12" y2="12"></line></svg>
+          <span id="exportPdfBtnText">Export PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
